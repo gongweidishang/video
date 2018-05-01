@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,user-scalable=no,initial-scale=1.0">
+	<title>Document</title>
+</head>
+<style>
+/*	video::-webkit-media-controls-play-button,
+video::-webkit-media-controls-start-playback-button {
+    opacity: 0;
+    pointer-events: none;
+    width: 5px;
+}*/
+video::-webkit-media-controls-start-playback-button {
+    display: none;
+}
+
+</style>
+<body>
+
+
+<script>
+
+    var v_arr= [
+    'http://api.wopaitv.com/restwww/download/voice/h5_ac_video/snh48/2wuzhehanxuzixuan.mp4',
+    'http://api.wopaitv.com/restwww/download/voice/h5_ac_video/snh48/liupeixin.mp4',
+    'http://api.wopaitv.com/restwww/download/voice/h5_ac_video/snh48/3wangxiaojia.mp4'
+    ]
+    function playVideo(videoId){
+                var _this = this;
+
+                var video1 = document.getElementById(videoId);
+                // var poster = video1
+                
+                var videoList = document.getElementsByTagName('video');
+                var len = videoList.length;
+                for(var i=0;i<len;i++){
+                    videoList[i].pause();
+                    // videoList[i].src= '';
+                }
+                // video1.src = v_arr[num]
+                // if(video1.paused){
+                    video1.play();
+                // }else{
+                //     video1.pause();
+                // }
+               
+
+            }
+
+
+</script>
+
+
+
+
+
+<video id='video' muted='true' src="http://v1-tt.ixigua.com/e334518f387995dfe778b8ab8a3e4239/59e450ee/video/m/2205b10c7f1d20f4e7db9680e0ad02945af1151bcb900000cb1c4aee396/" poster='http://bvcs4test.oss-cn-beijing.aliyuncs.com/data/image/html/2017-04-26/105707_105.gif' controls="controls"></video>
+<hr>
+<button id="play" title="play">播放</button>
+<button id="restart" title="restart">重播一次</button>
+<button id="rew" title="rew">快退</button>
+<button id="forward" title="forward">前进</button>
+<button id="slower" title="slower">慢速</button>
+<button id="mormal" title="mormal">常速</button>
+<button id="faster" title="faster">快速</button>
+<button id="volumeUp" title="volumeUp">音量+</button>
+<button id="volumeDown" title="volumeDown">音量-</button>
+<button id="mute" title="mute">静音</button>
+<div id="vLength"></div>
+<div id="curTime"></div>
+<div id="vRemaining"></div>
+<div id="mutetext"></div>
+<div id="errorMsg"></div>
+
+<div id="ls"></div>
+加载进度<div id="pg"></div>
+<div id="dc"></div>
+<div id="ld"></div>
+<div id="cpt"></div>
+<div id="waiting"></div>
+<div id="progress"></div>
+<div id="stall"></div>
+
+<p id='loading'>加载进行中</p>
+
+
+
+
+<!-- <video id='video' src="http://api.wopaitv.com/restwww/download/voice/h5_ac_video/snh48/liupeixin.mp4" poster='http://bvcs4test.oss-cn-beijing.aliyuncs.com/data/image/html/2017-04-26/105707_105.gif' controls="controls"></video> -->
+
+<script>
+
+	var borwser = (function(){
+            var s = navigator.userAgent.toLowerCase();
+            var match = /(webkit)[ \/]([\w.]+)/.exec(s)||/(opera)(?:.*version)?[ \/]([\w.]+)/.exec(s)||(!!window.ActiveXObject || "ActiveXObject" in window) && /(msie\s|rv:)([\w.]+)/.exec(s)||!/compatible/.test(s) && /(mozilla)(?:.*? rv:([\w.]+))?/.exec(s) ||[];
+            return {name : match[1] || "",version : match[2] || "0"};
+        })();
+	var video= document.getElementById('video');
+	var vTime,vLength,pgFlag;
+    var loading = $('loading');
+
+	function $(id){
+		return document.getElementById(id);
+	}
+
+
+
+	if(video.canPlayType){ //判断浏览器是否支持video标签
+
+		function setplay(evt){
+			if(video.paused){
+				video.play();
+				document.getElementById("play").innerHTML = "暂停";
+			}else{
+				video.pause();	
+				 document.getElementById("play").innerHTML = "播放"
+			}
+		}
+		function setTime(val){
+			val = val || 0;
+			if(val == 0){
+				video.currentTime = val;
+				video.play();
+			}else{
+				video.currentTime += val;
+			}
+		};
+		function setVol(value){
+            var vol = video.volume;
+            vol = (vol + value).toFixed(1);
+            // console.log(vol+':'+value)
+            if(vol >= 0 && vol <= 1){
+                video.volume = vol;
+            }else{
+                video.volume = (vol < 0) ? 0 : 1;
+            }
+        }
+		
+		function setSpeed(val){
+			if(val == 0){
+				video.playbackRate = 1;
+			}else{
+        		video.playbackRate += val;
+			}
+        }
+
+		video.addEventListener("canplay",function(event){  //通知何时视频加载内容已足够用于开始播放
+			console.log(11)
+			// console.log(video.currentTime)
+		},false);
+
+		//chrome和opera双击全屏
+        if(borwser.name === "webkit"){
+            //chrome的双击视频画面全屏
+            var count = 0;
+            video.addEventListener("dblclick",function(){
+                if(count % 2 == 0){
+                    video.webkitRequestFullScreen();
+                }else{
+                    // video.exitFullscreen();
+                    document.webkitCancelFullScreen();
+                    console.log("退出全屏")
+                }
+                count++;
+                // console.log(count)
+            },false);
+        }
+
+        $('play').addEventListener("click",setplay,false); //播放
+        $('restart').addEventListener("click",function(){
+        	setTime(0)
+        },false); //播放
+        
+        $('rew').addEventListener("click",function(){
+        	setTime(-5)
+        },false);
+        $('forward').addEventListener("click",function(){
+        	setTime(+5)
+        },false);
+        $('slower').addEventListener("click",function(){
+        	// console.log(video.playbackRate)
+        	setSpeed(-0.1)
+        },false);
+        $('mormal').addEventListener("click",function(){
+        	// console.log(video.playbackRate)
+        	setSpeed(0)
+        },false);
+        $('faster').addEventListener("click",function(){
+        	setSpeed(.2)
+        },false);
+        $('volumeUp').addEventListener("click",function(){
+        	setVol(.2)
+        },false);
+        $('volumeDown').addEventListener("click",function(){
+        	setVol(-.2)
+        },false);
+        $('mute').addEventListener("click",function(){
+        	if(video.muted){
+                video.muted = false;
+            }else{
+                video.muted = true;
+            }
+        },false);
+        
+        
+        video.addEventListener('playing',function(){
+            // console.log(video.currentTime)
+            //监听播放
+            console.log('播放')
+            // loading.style.display = 'none';
+        })
+        video.addEventListener('pause',function(){
+            // console.log(video.currentTime)
+            console.log('暂停')
+        })
+
+        video.addEventListener("loadedmetadata",function(){ //获取视频长度，
+                vLength = video.duration.toFixed(1);
+                $("vLength").innerHTML = "视频时间长度:" + vLength + "秒";
+
+        },false)
+        video.addEventListener("timeupdate",function(){ //监听播放时间的改变
+            var vTime = video.currentTime;
+            document.getElementById("curTime").innerHTML = "当前播放时间:" + vTime.toFixed(0) + "秒";
+            document.getElementById("vRemaining").innerHTML = "剩余播放时间:" + (vLength - vTime).toFixed(0) + "秒";
+
+            // if(vTime >= 5){
+            //   video.pause();
+            // }
+        },false);
+        video.addEventListener("volumechange",function(){
+            if(video.muted){
+                $("mutetext").innerHTML = "声音:静音";
+            }else{
+                $("mutetext").innerHTML = "音量:" +　video.volume;
+            }
+        },false);
+
+        video.addEventListener("error",function(err){
+            console.log(err);
+        },false);
+
+
+
+        //页面加载时出现
+        video.addEventListener("loadstart",function(){
+            $("ls").innerHTML = "开始加载视频";
+        },false);
+
+        //在onloadstart之后和onloadedmetadata(确定时间)之前主立即引发
+        var fa = 0;
+        video.addEventListener("durationchange", function () {
+            $("dc").textContent = "视频时长发生变化"+(fa++);
+        }, false);
+
+        //视频加载完后才出现 获取视频长度
+        var loadNum = 0;
+        video.addEventListener("loadeddata",function(){
+            loadNum++;
+
+            $("ld").innerHTML = "需要播放的视频加载完成"+loadNum;
+        },false);
+        //视频播放结束后触发
+        video.addEventListener("ended",function(){
+            $("ndd").innerHTML = "结束后事件";
+        },false);
+        //重置为初始状态下触发
+        video.addEventListener("emptied",function(){
+            $("mt").innerHTML = "视频初始化状态";
+        },false);
+
+        //在没有可播放的视频流时触发
+        video.addEventListener("stalled",function(){
+            $("stall").innerHTML = "网络中断，下载停止";
+        },false);
+
+        //播放下一帧不可用时触发(断网或者缓冲情况下，做加载进度条)
+        var ddf = 0;
+        video.addEventListener("waiting",function(){
+            $("waiting").innerHTML = "无法继续播放"+(ddf++);
+        },false);
+
+
+        //指示正在下载媒体内容,下载完后停止 加载时间可以使用此方法
+        var wait = 0;
+        var isload = false;
+        
+        video.addEventListener("progress",function(){
+            
+            if(wait++){
+                loading.style.display = 'block';
+                // console.info(wait);
+            }else{
+                loading.style.display = 'none';
+            }
+
+            pgFlag += ".";
+            if(pgFlag.length > 10){
+                pgFlag = ".";
+            }
+            $("pg").innerHTML = pgFlag;
+            
+        },false);
+
+        //在不需要进一步缓冲就可以播放直至文件结束时引发
+        var num = 1;
+        video.addEventListener("canplaythrough", function () {
+            isload = false;
+            num++;
+            document.getElementById("cpt").textContent = "需要播放的全部加载完毕"+num;
+        }, false);
+
+        function errMessage(msg){
+            //display an error message for 5 seconds then clears it;
+            document.getElementById("errorMsg").innerHTML = msg;
+            setTimeout(function(){
+                document.getElementById("errorMsg").innerHTML = "";
+            },5000);
+        }
+
+	}
+
+// var eventTester = function(e,callfn){
+//      video.addEventListener(e,callfn,false);
+
+// }
+// 	function pla(){
+// 		video.play();
+// 		 console.log(43433)
+// 	}
+// 	eventTester('click',pla)
+
+</script>
+
+
+
+</body>
+</html>
+
+
